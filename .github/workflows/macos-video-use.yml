@@ -1,0 +1,78 @@
+name: macOS video-use
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: macos-video-use
+  cancel-in-progress: false
+
+jobs:
+  mac:
+    runs-on: macos-15-intel
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+      - name: Prepare video-use
+        run: |
+          command -v ffmpeg >/dev/null || HOMEBREW_NO_AUTO_UPDATE=1 brew install ffmpeg
+          python -m venv .venv
+          .venv/bin/python -m pip install -e .
+          npm install --global @openai/codex
+          mkdir -p "$HOME/.agents/skills" "$HOME/videos"
+          ln -s "$GITHUB_WORKSPACE" "$HOME/.agents/skills/video-use"
+          printf 'export PATH=%q:$PATH\n' "$(dirname "$(command -v node)")" >> "$HOME/.zshrc"
+          printf 'source %q\n' "$GITHUB_WORKSPACE/.venv/bin/activate" >> "$HOME/.zshrc"
+      - name: Verify rendering
+        run: |
+          .venv/bin/python -m unittest discover -s tests -v
+          .venv/bin/python scripts/smoke_render.py
+          sw_vers
+          stat -f '%Su' /dev/console
+      - uses: tailscale/github-action@v4
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:video-use
+          hostname: mac-video-use-${{ github.run_id }}
+      - name: Enable private SSH
+        env:
+          PUBLIC_KEY: ${{ secrets.MAC_SSH_PUBLIC_KEY }}
+        run: |
+          mkdir -p "$HOME/.ssh"
+          chmod 700 "$HOME/.ssh"
+          printf '%s\n' "$PUBLIC_KEY" >> "$HOME/.ssh/authorized_keys"
+          chmod 600 "$HOME/.ssh/authorized_keys"
+          sudo ssh-keygen -A
+          IP=$(tailscale ip -4)
+          sudo /usr/sbin/sshd -p 2222 -o "ListenAddress=$IP" -o PasswordAuthentication=no -o KbdInteractiveAuthentication=no
+          echo "SSH: ssh -p 2222 runner@$IP"
+      - name: Check graphical access
+        env:
+          VNC_PASSWORD: ${{ secrets.MAC_VNC_PASSWORD }}
+        run: |
+          /usr/sbin/screencapture -x /tmp/mac-desktop.png || true
+          printf 'block in quick on ! lo0 proto tcp from any to any port 5900\n' | sudo pfctl -a com.apple/video-use -f -
+          sudo pfctl -E
+          sudo /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart \
+            -activate -configure -access -on -users runner -privs -all \
+            -clientopts -setvnclegacy -vnclegacy yes -setvncpw -vncpw "$VNC_PASSWORD" \
+            -restart -agent || true
+          IP=$(tailscale ip -4)
+          echo "Mac address: $IP"
+          echo 'Graphical access must be verified; macOS privacy permissions may limit control.'
+      - name: Development session (5 hours)
+        run: |
+          END=$((SECONDS + 18000))
+          while (( SECONDS < END )); do sleep 30; done
