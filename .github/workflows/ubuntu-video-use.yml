@@ -50,6 +50,7 @@ jobs:
           .venv/bin/python -m pip install --upgrade pip
           .venv/bin/python -m pip install -e .
           npm install --global @openai/codex
+          printf 'export PATH=%q:$PATH\n' "$(dirname "$(command -v node)")" >> "$HOME/.bashrc"
           mkdir -p "$HOME/.agents/skills" "$HOME/videos"
           ln -s "$GITHUB_WORKSPACE" "$HOME/.agents/skills/video-use"
           echo "source '$GITHUB_WORKSPACE/.venv/bin/activate'" >> "$HOME/.bashrc"
@@ -79,6 +80,7 @@ jobs:
         if: inputs.ssh
         run: |
           IP=$(tailscale ip -4)
+          echo "Connexion : ssh runner@$IP"
           {
             echo '## Ubuntu video-use pret'
             echo '```sh'
