@@ -13,6 +13,28 @@ defaut, 330 maximum). Le resume de l'execution indique l'adresse SSH.
 La machine disparait en fin de session. Annuler le workflow pour terminer
 plus tot ; aucun redemarrage automatique n'est prevu.
 
+## Bureau graphique
+
+L'option **Installer le bureau graphique XFCE** est active par defaut pour
+les sessions SSH. Le bureau s'ouvre dans le navigateur a cette adresse,
+en remplacant l'adresse IP par celle de la session :
+
+```text
+http://ADRESSE_TAILSCALE:6080/vnc.html?autoconnect=1&resize=remote
+```
+
+L'application Tailscale doit etre installee et connectee sur l'ordinateur
+qui ouvre ce lien. La connexion a la console web Tailscale seule ne suffit
+pas. Le serveur VNC ecoute uniquement sur loopback ; la passerelle du
+navigateur ecoute uniquement sur l'adresse privee Tailscale. L'acces au
+bureau repose sur l'identite des appareils et les autorisations du tailnet.
+Ne pas exposer ce port sur Internet ni partager le serveur avec un tiers.
+
+Sur une session SSH deja ouverte, installer le bureau avec
+`bash scripts/start_desktop.sh` depuis une copie a jour du depot.
+Ce bureau ajoute un terminal et un gestionnaire de fichiers ; video-use
+reste un outil de montage pilote par un agent, sans timeline graphique.
+
 Sur un ordinateur connecte au meme compte Tailscale :
 
 ```sh
