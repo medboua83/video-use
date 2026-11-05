@@ -11,6 +11,10 @@ on:
         description: 'Duree SSH en minutes (1 a 330)'
         default: '300'
         required: true
+      desktop:
+        description: 'Installer le bureau graphique XFCE (avec Tailscale)'
+        type: boolean
+        default: true
 
 permissions:
   contents: read
@@ -76,6 +80,9 @@ jobs:
           hostname: video-use-${{ github.run_id }}
           tailscaled-args: --tun=tailscale0
           args: --ssh
+      - name: Bureau graphique prive
+        if: inputs.ssh && inputs.desktop
+        run: bash scripts/start_desktop.sh
       - name: Informations de la session
         if: inputs.ssh
         run: |
