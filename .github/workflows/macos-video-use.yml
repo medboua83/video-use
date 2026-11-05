@@ -28,7 +28,8 @@ jobs:
         run: |
           command -v ffmpeg >/dev/null || HOMEBREW_NO_AUTO_UPDATE=1 brew install ffmpeg
           python -m venv .venv
-          .venv/bin/python -m pip install -e .
+          .venv/bin/python -m pip install --upgrade pip
+          .venv/bin/python -m pip install -e . 'numba==0.61.2' 'llvmlite==0.44.0'
           npm install --global @openai/codex
           mkdir -p "$HOME/.agents/skills" "$HOME/videos"
           ln -s "$GITHUB_WORKSPACE" "$HOME/.agents/skills/video-use"
