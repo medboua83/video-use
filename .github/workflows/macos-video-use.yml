@@ -2,6 +2,11 @@ name: macOS video-use
 
 on:
   workflow_dispatch:
+    inputs:
+      desktop_experiment:
+        description: 'Attempt screen sharing (experimental; may show a black screen)'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -60,6 +65,7 @@ jobs:
           sudo /usr/sbin/sshd -p 2222 -o "ListenAddress=$IP" -o PasswordAuthentication=no -o KbdInteractiveAuthentication=no
           echo "SSH: ssh -p 2222 runner@$IP"
       - name: Check graphical access
+        if: inputs.desktop_experiment
         env:
           VNC_PASSWORD: ${{ secrets.MAC_VNC_PASSWORD }}
         run: |
